@@ -1,0 +1,80 @@
+Galaincha is a powerful custom rug designing software. It is the solution for carpet designing, producing simulated renderings and preprocessing. It is an extremely user friendly software that can be instantly mastered by designers with prior graphics software knowledge. Even business owners with no prior graphics software expertise will be able to use its major features for customization, illustration and production details with ease.
+
+You will be notified if any prerequisite to run Galaincha software is missing. Please install the required component and login again in that case. If you are running Galaincha for the first time, you will be asked to install it. Please confirm to proceed.
+
+Minimum requirement: Windows XP SP2+, .NET 3.5 SP1, 500MHz CPU, 256MB RAM
+Recommended requirement: Windows 7+, 800MHz CPU, 512MB RAM, 1024x768 display
+Installation size: 200MB (1GB recommended for large designs)
+
+Supported formats: JPEG, PNG, BMP, PSD, CTF, CTFX
+Shortcut Keys: Ctrl+O to open, Ctrl+S to save, Ctrl+Shift+S for Save As
+Browse feature shows thumbnails without opening files
+Recent files list displays last 8 designs with previews
+Scanner import: File > Acquire > From Scanner/Camera
+
+Reduce Colors: Shrink 16M colors → 26 weavable colors
+Quick Colors: Stores 12 frequent swatches
+Factory Colors: 500+ named colors (e.g., "Ruby Wool")
+Primary/Secondary: Set with left/right click or [X] to swap
+
+### Pattern Generators
+Greek Key Border: 6 styles (Double T-Shape, Edge-to-Edge)
+Checkerboard: Adjustable box sizes (5x5 to 50x50 knots)
+Maze: Creates puzzles with foreground/background colors
+Contour: Abstract designs with scale/roughness controls
+
+### Cleaning Tools
+Refine: Smooths jagged edges (Ctrl+Alt+R)
+Remove Islands: Deletes patches under 10 knots
+Remove Single Knots: Cleans stray pixels
+Handmade Effect: Adds organic imperfections
+
+## VISUALIZATION
+3D Textures: Wool, Silk, Loop, Custom
+Pile Heights: Low (0.2cm), Medium, High (1.5cm)
+Strike Off: 60x60cm production preview
+Room View: 6 environment styles (Modern, Classic)
+Material Assignment: Right-click colors to set texture
+
+## PRODUCTION TOOLS
+Material Estimation: Calculates yarn needs (95% accuracy)
+Print Graph: Shows knot counts (numbers/letters)
+Design Plate: Includes logo, color key, size in cm/knots
+Graph Settings: Adjust grid, room size, print resolution
+
+## SHORTCUTS
+Navigation: 
+- Zoom: [Ctrl + +/-] 
+- Pan: [Spacebar+drag]
+- Actual Size: [Ctrl+Shift+A]
+
+Editing:
+- Undo: [Ctrl+Z] (50 steps max)
+- New Layer: [Ctrl+Shift+N]
+- Merge Layers: [Ctrl+M]
+
+Tools:
+- Brush Size: [ ] keys
+- Color Picker: [P]
+- Text Tool: [T]
+
+## WORKFLOW EXAMPLES
+### Converting Art to Weavable Design:
+1. File > Open (select image)
+2. CarpeTools > Art to Graph
+3. Set target colors (default:26)
+4. Refine edges with Clean tools
+5. Assign materials via Visualization
+
+### Creating Geometric Pattern:
+1. CarpeTools > Create > Checkerboard
+2. Set dimensions (e.g., 20x20 knots)
+3. Choose primary/secondary colors
+4. Apply Handmade Effect for texture
+5. File > Print Graph for production
+
+## TROUBLESHOOTING
+Color Distortion: Check "Maintain Aspect Ratio" in Resize
+Missing Features: Verify .NET 3.5 SP1 installed
+Performance Issues: Reduce design layers/complexity
+Scanner Not Detected: Check WIA drivers

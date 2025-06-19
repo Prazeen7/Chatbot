@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Galaincha Knowledge Base</title>
+    <link rel="stylesheet" href="..app/static/css/style.css">
+</head>
+<body>
+    <h1>Galaincha Knowledge Base</h1>
+    <div class="chat-container" id="chat-container">
+        <div class="assistant-message">
+            Hello! I can answer questions about Galaincha. What would you like to know?
+        </div>
+    </div>
+    
+    <input type="text" id="question-input" placeholder="Ask your question about Galaincha...">
+    <button id="ask-button">Ask</button>
+    <div class="loading" id="loading">Thinking...</div>
+    
+    <script>
+        document.getElementById('ask-button').addEventListener('click', askQuestion);
+        document.getElementById('question-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                askQuestion();
+            }
+        });
+        
+        function askQuestion() {
+            const question = document.getElementById('question-input').value.trim();
+            if (!question) return;
+            
+            const chatContainer = document.getElementById('chat-container');
+            const loading = document.getElementById('loading');
+            
+            chatContainer.innerHTML += `
+                <div class="user-message">
+                    <strong>You:</strong> ${question}
+                </div>
+            `;
+            
+            loading.style.display = 'block';
+            document.getElementById('question-input').value = '';
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            fetch('/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({question: question})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    chatContainer.innerHTML += `
+                        <div class="assistant-message" style="color: red;">
+                            Error: ${data.error}
+                        </div>
+                    `;
+                } else {
+                    chatContainer.innerHTML += `
+                        <div class="assistant-message">
+                            <strong>Assistant:</strong> ${data.answer}
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                chatContainer.innerHTML += `
+                    <div class="assistant-message" style="color: red;">
+                        Error: ${error.message}
+                    </div>
+                `;
+            })
+            .finally(() => {
+                loading.style.display = 'none';
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            });
+        }
+    </script>
+</body>
+</html>

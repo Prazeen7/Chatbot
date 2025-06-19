@@ -1,24 +1,23 @@
-from flask import Flask, render_template, request, jsonify,  send_from_directory
-from rag.document_processor import DocumentProcessor
-from rag.embeddings import EmbeddingManager
-from rag.retrieval import Retriever
-from config import Config
+from flask import Flask, render_template, request, jsonify, send_from_directory
 import logging
+from config import *
+from rag.document_processor import load_documents
+from rag.embeddings import verify_model, get_embedding, cosine_similarity
+from rag.retrieval import initialize_vector_db, generate_answer
+import ollama
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.config.from_object(Config)
 
 # Initialize RAG components
 try:
     logger.info("Initializing RAG system...")
-    processor = DocumentProcessor(Config.KNOWLEDGE_PDF)
-    embedder = EmbeddingManager(Config.EMBEDDING_MODEL, Config.OLLAMA_SERVER)
-    documents = processor.load_documents()
-    retriever = Retriever(embedder, documents)
+    documents = load_documents(KNOWLEDGE_PDF)
+    client = ollama.Client(host=OLLAMA_SERVER)
+    verify_model(client, EMBEDDING_MODEL)
+    vector_db = initialize_vector_db(documents, client, EMBEDDING_MODEL)
     logger.info("RAG system initialized successfully")
 except Exception as e:
     logger.error(f"Failed to initialize RAG system: {str(e)}")
@@ -41,15 +40,11 @@ def ask_question():
         return jsonify({'error': 'Empty question'}), 400
     
     try:
-        answer = retriever.generate_answer(
-            query, 
-            language_model=Config.LANGUAGE_MODEL,
-            top_n=Config.TOP_N_RESULTS
-        )
+        answer = generate_answer(query, vector_db, client, TOP_N_RESULTS)
         return jsonify({'answer': answer})
     except Exception as e:
         logger.error(f"Error processing question: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host=Config.HOST, port=Config.PORT, debug=Config.DEBUG)
+    app.run(host=HOST, port=PORT, debug=DEBUG)

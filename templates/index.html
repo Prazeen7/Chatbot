@@ -1,88 +1,111 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Galaincha Knowledge Base</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
     <h1>Galaincha Knowledge Base</h1>
     <div class="chat-container" id="chat-container">
-        <div class="assistant-message">
-            Hello! I can answer questions about Galaincha. What would you like to know?
-        </div>
+      <div class="assistant-message">
+        Hello! I can answer questions about Galaincha. What would you like to
+        know?
+      </div>
     </div>
-    
+
     <div class="input-container">
-        <input type="text" id="question-input" placeholder="Ask your question about Galaincha...">
-        <button id="ask-button">Ask</button>
+      <input
+        type="text"
+        id="question-input"
+        placeholder="Ask your question about Galaincha..."
+      />
+      <button id="ask-button">Ask</button>
     </div>
-    <div class="loading" id="loading">Thinking...</div>
-    
+
     <script>
-        document.getElementById('ask-button').addEventListener('click', askQuestion);
-        document.getElementById('question-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                askQuestion();
-            }
+      document
+        .getElementById("ask-button")
+        .addEventListener("click", askQuestion);
+      document
+        .getElementById("question-input")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            askQuestion();
+          }
         });
-        
-        function askQuestion() {
-            const question = document.getElementById('question-input').value.trim();
-            if (!question) return;
-            
-            const chatContainer = document.getElementById('chat-container');
-            const loading = document.getElementById('loading');
-            
-            // Add user message
-            const userMessage = document.createElement('div');
-            userMessage.className = 'user-message';
-            userMessage.innerHTML = `<strong>You:</strong> ${question}`;
-            chatContainer.appendChild(userMessage);
-            
-            // Show loading
-            loading.style.display = 'block';
-            document.getElementById('question-input').value = '';
+
+      function askQuestion() {
+        const question = document.getElementById("question-input").value.trim();
+        if (!question) return;
+
+        const chatContainer = document.getElementById("chat-container");
+
+        // Add user message
+        const userMessage = document.createElement("div");
+        userMessage.className = "user-message";
+        userMessage.innerHTML = `<strong>You:</strong> ${question}`;
+        chatContainer.appendChild(userMessage);
+
+        // Add loading message
+        const loadingMessage = document.createElement("div");
+        loadingMessage.className = "loading-message";
+        loadingMessage.id = "loading-indicator";
+        loadingMessage.textContent = "Thinking...";
+        chatContainer.appendChild(loadingMessage);
+
+        document.getElementById("question-input").value = "";
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        // Send request
+        fetch("/ask", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ question: question }),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((data) => {
+            const loadingElement = document.getElementById("loading-indicator");
+            if (loadingElement) loadingElement.remove();
+
+            const assistantMessage = document.createElement("div");
+            assistantMessage.className = "assistant-message";
+
+            if (data.error) {
+              assistantMessage.style.color = "red";
+              assistantMessage.innerHTML = `Error: ${data.error}`;
+            } else {
+              // Detect if response contains steps
+              const hasSteps = /^\d+\.|\n\d+\./.test(data.answer);
+              assistantMessage.classList.add(hasSteps ? "steps" : "paragraph");
+              assistantMessage.innerHTML = `<strong>Galaincha Expert:</strong> ${data.answer}`;
+            }
+
+            chatContainer.appendChild(assistantMessage);
+          })
+          .catch((error) => {
+            // Remove loading message
+            const loadingElement = document.getElementById("loading-indicator");
+            if (loadingElement) {
+              loadingElement.remove();
+            }
+
+            const errorMessage = document.createElement("div");
+            errorMessage.className = "assistant-message";
+            errorMessage.style.color = "red";
+            errorMessage.innerHTML = `Error: ${error.message}`;
+            chatContainer.appendChild(errorMessage);
+          })
+          .finally(() => {
             chatContainer.scrollTop = chatContainer.scrollHeight;
-            
-            // Send request
-            fetch('/ask', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({question: question})
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                const assistantMessage = document.createElement('div');
-                assistantMessage.className = 'assistant-message';
-                
-                if (data.error) {
-                    assistantMessage.style.color = 'red';
-                    assistantMessage.innerHTML = `Error: ${data.error}`;
-                } else {
-                    assistantMessage.innerHTML = `<strong>Assistant:</strong> ${data.answer}`;
-                }
-                
-                chatContainer.appendChild(assistantMessage);
-            })
-            .catch(error => {
-                const errorMessage = document.createElement('div');
-                errorMessage.className = 'assistant-message';
-                errorMessage.style.color = 'red';
-                errorMessage.innerHTML = `Error: ${error.message}`;
-                chatContainer.appendChild(errorMessage);
-            })
-            .finally(() => {
-                loading.style.display = 'none';
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-            });
-        }
+          });
+      }
     </script>
-</body>
+  </body>
 </html>

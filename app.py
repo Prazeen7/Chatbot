@@ -1,23 +1,26 @@
+# app.py
 from flask import Flask, render_template, request, jsonify, send_from_directory
-import logging
-from config import *
 from rag.document_processor import load_documents
 from rag.embeddings import verify_model, get_embedding, cosine_similarity
-from rag.retrieval import initialize_vector_db, generate_answer
+from rag.retrieval import initialize_vector_db, retrieve, generate_answer
+from config import Config
+import logging
 import ollama
 
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+app.config.from_object(Config)
 
 # Initialize RAG components
 try:
     logger.info("Initializing RAG system...")
-    documents = load_documents(KNOWLEDGE_PDF)
-    client = ollama.Client(host=OLLAMA_SERVER)
-    verify_model(client, EMBEDDING_MODEL)
-    vector_db = initialize_vector_db(documents, client, EMBEDDING_MODEL)
+    documents = load_documents(Config.KNOWLEDGE_PDF)
+    client = ollama.Client(host=Config.OLLAMA_SERVER)
+    verify_model(client, Config.EMBEDDING_MODEL)
+    vector_db = initialize_vector_db(client, Config.EMBEDDING_MODEL, documents)
     logger.info("RAG system initialized successfully")
 except Exception as e:
     logger.error(f"Failed to initialize RAG system: {str(e)}")
@@ -40,11 +43,18 @@ def ask_question():
         return jsonify({'error': 'Empty question'}), 400
     
     try:
-        answer = generate_answer(query, vector_db, client, TOP_N_RESULTS)
+        answer = generate_answer(
+            vector_db,
+            client,
+            Config.EMBEDDING_MODEL,
+            Config.LANGUAGE_MODEL,
+            query,
+            top_n=Config.TOP_N_RESULTS
+        )
         return jsonify({'answer': answer})
     except Exception as e:
         logger.error(f"Error processing question: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host=HOST, port=PORT, debug=DEBUG)
+    app.run(host=Config.HOST, port=Config.PORT, debug=Config.DEBUG)

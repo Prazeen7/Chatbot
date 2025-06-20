@@ -1,39 +1,41 @@
-from config import *
+# retrieval.py
+from typing import List, Tuple
+import ollama
 from rag.embeddings import get_embedding, cosine_similarity
-import re
+from rag.exceptions import RetrievalError
 
-def initialize_vector_db(documents, client, model_name):
+def initialize_vector_db(embedder_client, model_name: str, documents: List[str]) -> List[Tuple[str, List[float]]]:
     vector_db = []
     for doc in documents:
         try:
-            embedding = get_embedding(client, doc, model_name)
+            embedding = get_embedding(embedder_client, model_name, doc)
             vector_db.append((doc, embedding))
-        except Exception:
-            continue
+        except Exception as e:
+            continue  # Skip failed embeddings
     return vector_db
 
-def retrieve(query, vector_db, client, model_name, top_n=3):
+def retrieve(vector_db, embedder_client, model_name: str, query: str, top_n: int = 3) -> List[Tuple[str, float]]:
     try:
-        query_embed = get_embedding(client, query, model_name)
+        query_embed = get_embedding(embedder_client, model_name, query)
         scored = [
             (chunk, cosine_similarity(query_embed, embed))
             for chunk, embed in vector_db
         ]
         return sorted(scored, key=lambda x: x[1], reverse=True)[:top_n]
     except Exception as e:
-        raise ValueError(f"Failed to retrieve documents: {str(e)}")
+        raise RetrievalError(f"Failed to retrieve documents: {str(e)}")
 
-def generate_answer(query, vector_db, client, top_n=3):
+def generate_answer(vector_db, embedder_client, embedding_model: str, language_model: str, query: str, top_n: int = 3) -> str:
     try:
-        relevant = retrieve(query, vector_db, client, EMBEDDING_MODEL, top_n)
+        relevant = retrieve(vector_db, embedder_client, embedding_model, query, top_n)
         if not relevant:
-            return format_uncertain_response()
+            return "No relevant information found in the knowledge base."
+
+        context = "\n".join(f"- {chunk}" for chunk, score in relevant)
         
-        context = "\n".join(f"{chunk}" for chunk, score in relevant)
-        
-        response = client.chat(
-            model=LANGUAGE_MODEL,
-            messages=[{
+        response = ollama.Client().chat(
+            model=language_model,
+        messages=[{
                 'role': 'system',
                 'content': f"""You are a senior Galaincha technical expert. Answer STRICTLY using only this context:
                 {context}
@@ -51,32 +53,6 @@ def generate_answer(query, vector_db, client, top_n=3):
                 'content': query
             }]
         )
-        
-        # Verify answer is fully supported by context
-        if not is_answer_in_context(response['message']['content'], context):
-            return format_uncertain_response()
-            
-        return format_expert_response(response['message']['content'])
-    
-    except Exception:
-        return format_uncertain_response()
-
-def format_uncertain_response():
-    return ("I'm unsure about your specific concern. For precise technical support, please:\n\n"
-            "• Email: info@galaincha.com.np (from your registered Galaincha email)\n"
-            "• Phone: +977 9818502734\n\n"
-            "Our support team will assist you with verified information.")
-
-def is_answer_in_context(answer, context):
-    """Verify the generated answer is fully supported by context"""
-    answer_keywords = set(re.findall(r'\w{4,}', answer.lower()))
-    context_keywords = set(re.findall(r'\w{4,}', context.lower()))
-    return len(answer_keywords - context_keywords) < 3  # Allow minor connective words
-
-def format_expert_response(text):
-    """Format verified technical responses"""
-    # Clean step formatting
-    text = re.sub(r'(\d+\.)\s+', r'\1 ', text)
-    # Remove any accidental reference phrases
-    text = re.sub(r'\b(according to|per|based on)\b.+\n?', '', text, flags=re.IGNORECASE)
-    return text.strip()
+        return response['message']['content']
+    except Exception as e:
+        raise RetrievalError(f"Failed to generate answer: {str(e)}")

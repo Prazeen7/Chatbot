@@ -5,52 +5,46 @@ from PIL import Image
 import io
 from pypdf import PdfReader
 from warnings import warn
-from config import (
-    MAX_CHUNK_SIZE,
-    MIN_CHUNK_SIZE,
-    CHUNK_OVERLAP,
-    DATA_FOLDER
-)
+from typing import List
+from config import Config
 
-def validate_pdf_folder(data_folder):
-    if not os.path.exists(data_folder):
-        raise FileNotFoundError(f"Data folder not found at {data_folder}")
-    
-    pdf_files = [f for f in os.listdir(data_folder) if f.lower().endswith('.pdf')]
-    if not pdf_files:
-        raise FileNotFoundError(f"No PDF files found in {data_folder}")
-    return pdf_files
+def validate_pdf(pdf_path: str):
+    if not os.path.exists(pdf_path):
+        raise FileNotFoundError(f"PDF file not found at {pdf_path}")
 
-def check_ocr_capability():
+def check_ocr_capability() -> bool:
     try:
-        pytesseract.get_tesseract_version()
+        import pytesseract
+        from PIL import Image
         return True
-    except:
+    except ImportError:
         warn("OCR dependencies not found. Image processing disabled.")
         return False
 
-def split_into_chunks(text):
+def split_into_chunks(text: str) -> List[str]:
+    # First split by paragraphs
     paragraphs = [p.strip() for p in text.split('\n') if p.strip()]
+    
     chunks = []
     current_chunk = ""
     
     for para in paragraphs:
-        if len(current_chunk) + len(para) > MAX_CHUNK_SIZE:
+        if len(current_chunk) + len(para) > Config.MAX_CHUNK_SIZE:
             if current_chunk:
                 chunks.append(current_chunk)
-                current_chunk = para[-CHUNK_OVERLAP:] + " " if CHUNK_OVERLAP else ""
+                current_chunk = para[-Config.CHUNK_OVERLAP:] + " " if Config.CHUNK_OVERLAP else ""
             else:
-                chunks.append(para[:MAX_CHUNK_SIZE])
-                current_chunk = para[MAX_CHUNK_SIZE - CHUNK_OVERLAP:] + " "
+                chunks.append(para[:Config.MAX_CHUNK_SIZE])
+                current_chunk = para[Config.MAX_CHUNK_SIZE - Config.CHUNK_OVERLAP:] + " "
         else:
             current_chunk += " " + para if current_chunk else para
     
     if current_chunk:
         chunks.append(current_chunk)
         
-    return [chunk for chunk in chunks if len(chunk) >= MIN_CHUNK_SIZE]
+    return [chunk for chunk in chunks if len(chunk) >= Config.MIN_CHUNK_SIZE]
 
-def process_images(page, can_ocr):
+def process_images(page, can_ocr: bool) -> List[str]:
     if not can_ocr:
         return []
     
@@ -67,26 +61,44 @@ def process_images(page, can_ocr):
             warn(f"Image processing skipped: {str(e)[:100]}...")
     return img_texts
 
-def clean_text(text):
-    text = re.sub(r'\s+', ' ', text.strip())
-    return re.sub(r'[\x00-\x1f\x7f-\x9f]', '', text)
+def save_chunks_to_file(chunks: List[str], output_file: str = "chunks.txt") -> str:
+    """Save text chunks to a file, creating directories if needed."""
+    try:
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+        
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for i, chunk in enumerate(chunks, 1):
+                f.write(f"=== Chunk {i} ===\n{chunk}\n\n")
+        
+        print(f"Saved {len(chunks)} chunks to: {os.path.abspath(output_file)}")
+        return output_file
+    except Exception as e:
+        warn(f"Failed to save chunks: {str(e)}")
+        return ""
 
-def load_documents():
-    pdf_files = validate_pdf_folder(DATA_FOLDER)
+def load_documents(pdf_path: str, save_chunks: bool = False, output_file: str = "chunks.txt") -> List[str]:
+    """Extract text from PDF without cleaning, optionally save chunks to file.
+    Returns list of chunks and optionally saves them to specified file."""
+    validate_pdf(pdf_path)
     can_ocr = check_ocr_capability()
+    
     text_chunks = []
+    try:
+        reader = PdfReader(pdf_path)
+        for page in reader.pages:
+            if text := page.extract_text():
+                text_chunks.extend(split_into_chunks(text))
+            if can_ocr:
+                text_chunks.extend(process_images(page, can_ocr))
+    except Exception as e:
+        raise RuntimeError(f"PDF processing error: {e}")
     
-    for pdf_file in pdf_files:
-        pdf_path = os.path.join(DATA_FOLDER, pdf_file)
-        try:
-            reader = PdfReader(pdf_path)
-            for page in reader.pages:
-                if text := page.extract_text():
-                    text_chunks.extend(split_into_chunks(text))
-                if can_ocr:
-                    text_chunks.extend(process_images(page, can_ocr))
-        except Exception as e:
-            warn(f"Failed to process {pdf_file}: {str(e)[:100]}...")
-            continue
+    filtered_chunks = [chunk for chunk in text_chunks if chunk]
     
-    return [clean_text(chunk) for chunk in text_chunks if chunk]
+    if save_chunks:
+        saved_path = save_chunks_to_file(filtered_chunks, output_file)
+        if not saved_path:
+            warn("Chunks were processed but not saved to file")
+    
+    return filtered_chunks

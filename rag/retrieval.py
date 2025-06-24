@@ -42,7 +42,7 @@ def generate_answer(vector_db, embedder_client, embedding_model: str, language_m
 
                 Response Rules:
                 1. Answer directly with technical authority
-                2. If context doesn't EXACTLY match the question, use uncertain response
+                2. If context doesn't EXACTLY match the question, I am unsure about your concern. 
                 3. Never guess or invent information
                 4. For procedures:
                    - Use numbered steps

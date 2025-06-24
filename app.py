@@ -1,4 +1,3 @@
-# app.py
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from rag.document_processor import load_documents
 from rag.embeddings import verify_model, get_embedding, cosine_similarity
@@ -16,7 +15,7 @@ app.config.from_object(Config)
 
 try:
     logger.info("Initializing RAG system...")
-    documents = load_documents(Config.KNOWLEDGE_PDF, save_chunks=True)  
+    documents = load_documents(save_chunks=True)  
     client = ollama.Client(host=Config.OLLAMA_SERVER)
     verify_model(client, Config.EMBEDDING_MODEL)
     vector_db = initialize_vector_db(client, Config.EMBEDDING_MODEL, documents)

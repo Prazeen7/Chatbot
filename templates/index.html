@@ -84,7 +84,7 @@
               // Detect if response contains steps
               const hasSteps = /^\d+\.|\n\d+\./.test(data.answer);
               assistantMessage.classList.add(hasSteps ? "steps" : "paragraph");
-              assistantMessage.innerHTML = `<strong>Galaincha Expert:</strong> ${data.answer}`;
+              assistantMessage.innerHTML = `<strong>Assistant:</strong> ${data.answer}`;
             }
 
             chatContainer.appendChild(assistantMessage);

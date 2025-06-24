@@ -1,4 +1,3 @@
-# config.py
 class Config:
     # Application settings
     HOST = '0.0.0.0'
@@ -8,7 +7,7 @@ class Config:
     # RAG settings
     EMBEDDING_MODEL = 'nomic-embed-text:latest'
     LANGUAGE_MODEL = 'llama3:latest'
-    KNOWLEDGE_PDF = 'galaincha_manual.pdf'
+    DATA_FOLDER = 'data'  # Folder containing PDF and DOCX files
     OLLAMA_SERVER = 'http://localhost:11434'
     TOP_N_RESULTS = 3
 
